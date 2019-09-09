@@ -382,6 +382,10 @@ Resources:
                   - /etc/cfn/cfn-hup.conf
                   - /etc/cfn/hooks.d/cfn-auto-reloader.conf
     Properties:
+      # !FindInMap
+      #   - 検索対象Mapping
+      #   - 検索文字列
+      #   - ヒットしたオブジェクトから引っ張ってきたいvalueのkey
       ImageId: !FindInMap
         - AWSRegionArch2AMI
         - !Ref 'AWS::Region'
@@ -394,6 +398,10 @@ Resources:
         - !Ref WebServerSecurityGroup
       KeyName: !Ref KeyName
       UserData: !Base64
+        #!Join
+        #   - 区切り文字
+        #   - - 文字1
+        #     - 文字2
         'Fn::Join':
           - ''
           - - |
@@ -428,11 +436,23 @@ Resources:
         - IpProtocol: tcp
           FromPort: '80'
           ToPort: '80'
+          # !Select
+          #   - 配列のindex, [0-9]+
+          #   - - value1
+          #     - value2
+          #     - value3
           SourceSecurityGroupId: !Select
             - 0
+            -
+            # https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-loadbalancer.html#aws-resource-elasticloadbalancingv2-loadbalancer-return-values
+            # albは返り値ではARNを返す
+            # GetAttで他の属性データも取り出せる
             - !GetAtt
               - ApplicationLoadBalancer
               - SecurityGroups
+        # https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-security-group-rule-1.html#aws-properties-ec2-security-group-rule-1-properties
+        # 以下の記述ですべてのトラフィックとして指定できる
+        # "IpProtocol": "-1"
         - IpProtocol: tcp
           FromPort: '22'
           ToPort: '22'
@@ -462,6 +482,8 @@ Resources:
         - !GetAtt
           - DBEC2SecurityGroup
           - GroupId
+# 他のスタックにインポートするときにExportしたものはその値を使用できる
+# Exportした値をcloudformationコンソールから確認できる
 Outputs:
   WebsiteURL:
     Description: URL for newly created LAMP stack
