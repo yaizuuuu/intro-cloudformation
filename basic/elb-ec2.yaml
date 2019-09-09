@@ -143,6 +143,9 @@ Resources:
         - !Ref ManagedSecurityGroup
         - !Ref WebSecurityGroup
       # Fn::ImportValue -> 別スタックのOutputsの値を使用できる
+      #
+      #
+      #
       SubnetId: { "Fn::ImportValue": !Sub "${PJPrefix}-public-subnet-a" }
       UserData: !Base64 |
         #! /bin/bash
