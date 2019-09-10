@@ -31,6 +31,10 @@ Parameters:
     Description: Name of an domain
     Type: String
     ConstraintDescription: must be the name of domain
+  HostedZoneId:
+    Description: Route53 host zone id
+    Type: AWS::Route53::HostedZone::Id
+    ConstraintDescription: Route53 host zone id
 
 Resources:
   # -------------------------
@@ -329,6 +333,21 @@ Resources:
         - Key: Name
           Value: !Sub '${AWS::StackName}_sub-domain'
       ValidationMethod: DNS
+
+
+  # -------------------------
+  # Route53
+  # -------------------------
+  ALBRecordSetGroup:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      RecordSets:
+        - Name: !Ref DomainName
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt ALB.DNSName
+            HostedZoneId: !GetAtt ALB.CanonicalHostedZoneID
 
 
 #UserData:
