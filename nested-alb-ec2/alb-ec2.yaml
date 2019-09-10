@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create ALB (or NLB) and attached EC2 instances.
+Parameters:
+  MyVpcId:
+    Type: AWS::EC2::VPC::Id
+  MySubnetId1:
+    Type: AWS::EC2::Subnet::Id
+  MySubnetId2:
+    Type: AWS::EC2::Subnet::Id
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+  MyEc2StackTemplateURL:
+    Type: String
+    AllowedPattern: ^https://s3.amazonaws.com/.+$
+Resources:
+  MyEc2Stack1:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        MyVpcId: !Ref MyVpcId
+        MySubnetId: !Ref MySubnetId1
+        MyKeyName: !Ref MyKeyName
+      TemplateURL: !Ref MyEc2StackTemplateURL
+  MyEc2Stack2:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        MyVpcId: !Ref MyVpcId
+        MySubnetId: !Ref MySubnetId2
+        MyKeyName: !Ref MyKeyName
+      TemplateURL: !Ref MyEc2StackTemplateURL
+  MyLbSecurityGroup:  # NLB では削除します。
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: MyLbSecurityGroup
+      GroupDescription: Allow incoming HTTP connections.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref MyVpcId
+  MyTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /status
+      HealthCheckPort: 80
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 10  # NLB では削除します。
+      HealthyThresholdCount: 4
+      Matcher:  # NLB では削除します。
+        HttpCode: 200
+      Name: MyTargetGroup
+      Port: 80
+      Protocol: HTTP  # NLB では `TCP` に変更します。
+      Targets:
+        - Id: !GetAtt MyEc2Stack1.Outputs.MyOutputEc2Instance
+          Port: 80
+        - Id: !GetAtt MyEc2Stack2.Outputs.MyOutputEc2Instance
+          Port: 80
+      UnhealthyThresholdCount: 3  # NLB では `HealthyThresholdCount` と同じ値にします。
+      VpcId: !Ref MyVpcId
+  MyLb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: MyLbName
+      Scheme: internet-facing
+      SecurityGroups:  # NLB では削除します。
+        - !Ref MyLbSecurityGroup
+      Subnets:
+        - !Ref MySubnetId1
+        - !Ref MySubnetId2
+      Type: application  # NLB では `network` に変更します。
+  MyListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref MyTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref MyLb
+      Port: 80
+      Protocol: HTTP  # NLB では `TCP` に変更します。

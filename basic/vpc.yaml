@@ -29,67 +29,120 @@ Parameters:
     ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
 
 Resources:
-  FirstVPC:
+  # -------------------------
+  # VPC
+  # -------------------------
+  VPC:
     Type: AWS::EC2::VPC
     Properties:
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
       CidrBlock: 10.0.0.0/16
       Tags:
         - Key: Name
-          Value: FirstVPC
+          Value: cloudformation-prod_vpc
+
+
+  # -------------------------
+  # IGW
+  # -------------------------
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: FirstVPC-IGW
+          Value: cloudformation-prod_igw
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref FirstVPC
+      VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
-  FrontendRouteTable:
+
+
+  # -------------------------
+  # RouteTable
+  # -------------------------
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    # VPCにIGWがアタッチし終わらないといけないため
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: cloudformation-prod_private-route-table
+  PublicRouteTable:
     Type: AWS::EC2::RouteTable
     # VPCにIGWがアタッチし終わらないといけないため
     DependsOn: AttachGateway
     Properties:
-      VpcId: !Ref FirstVPC
+      VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: FirstVPC-FrontendRoute
-  FrontendRoute:
+          Value: cloudformation-prod_public-route-table
+  PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: AttachGateway
     Properties:
-      RouteTableId: !Ref FrontendRouteTable
+      RouteTableId: !Ref PublicRouteTable
       # デフォルトはVPCのcidr blockのみが入る
       # 追加する場合は以下を書く
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
-  FrontendSubnet:
+
+
+  # -------------------------
+  # Subnet pub-a
+  # -------------------------
+  SubnetPubA:
     Type: AWS::EC2::Subnet
     # VPCにIGWがアタッチし終わらないといけないため
-    # FrontendRouteを指定するでもよい？
+    # PublicRouteを指定するでもよい？
     DependsOn: AttachGateway
     Properties:
-      CidrBlock: 10.0.1.0/24
+      CidrBlock: 10.0.0.0/21
       MapPublicIpOnLaunch: 'true'
-      VpcId: !Ref FirstVPC
+      VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: FirstVPC-FrontendSubnet
+          Value: cloudformation-prod_pub-a
   # サブネットとルートテーブルを紐付ける
   # こういった紐付ける系の指定の仕方が多いので、
   # どういった単位で指定するのかはドキュメントを読む
-  FrontendSubnetRouteTableAssociation:
+  SubnetPubARouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref FrontendSubnet
-      RouteTableId: !Ref FrontendRouteTable
+      SubnetId: !Ref SubnetPubA
+      RouteTableId: !Ref PublicRouteTable
+  # -------------------------
+  # Subnet pub-c
+  # -------------------------
+  SubnetPubC:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      CidrBlock: 10.0.16.0/21
+      MapPublicIpOnLaunch: 'true'
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: cloudformation-prod_pub-c
+  SubnetPubCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref SubnetPubC
+      RouteTableId: !Ref PublicRouteTable
 
+
+  # -------------------------
+  # EC2
+  # -------------------------
   EC2Instance:
     Type: AWS::EC2::Instance
     DependsOn: AttachGateway
     Properties:
+      Tags:
+        - Key: Name
+          Value: cloudformation-prod_web-server
       KeyName: !Ref KeyName
       ImageId: !Ref ImageId
       InstanceType: !Ref InstanceType
@@ -102,32 +155,42 @@ Resources:
       NetworkInterfaces:
         - AssociatePublicIpAddress: true
           DeviceIndex: 0
-          SubnetId: !Ref FrontendSubnet
+          SubnetId: !Ref SubnetPubA
           GroupSet:
-            - !Ref InstanceSecurityGroupSsh
-            - !Ref InstanceSecurityGroupWeb
+            - !Ref SshSecurityGroup
+            - !Ref InternalSecurityGroup
       UserData: !Base64 |
         #!/bin/bash
         sudo amazon-linux-extras install nginx1.12
         sudo systemctl start nginx
         sudo systemctl enable nginx
 
-  InstanceSecurityGroupSsh:
+
+  # -------------------------
+  # Security Group -> SSH
+  # -------------------------
+  SshSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      VpcId: !Ref FirstVPC
-      GroupName: SshAny
+      VpcId: !Ref VPC
+      GroupName: cloudformation-prod_ssh-any
       GroupDescription: Enable SSH access via port 22
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: '22'
           ToPort: '22'
           CidrIp: !Ref SSHLocation
-  InstanceSecurityGroupWeb:
+      Tags:
+        - Key: Name
+          Value: cloudformation-prod_ssh-any
+  # -------------------------
+  # Security Group -> Web
+  # -------------------------
+  WebSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      VpcId: !Ref FirstVPC
-      GroupName: WebAny
+      VpcId: !Ref VPC
+      GroupName: cloudformation-prod_web-any
       GroupDescription: Enable Web access via port 80 and 443
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -138,6 +201,87 @@ Resources:
           FromPort: '443'
           ToPort: '443'
           CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: cloudformation-prod_web-any
+  # -------------------------
+  # Security Group -> Internal
+  # -------------------------
+  InternalSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: cloudformation-prod_internal
+      GroupDescription: Allow internal.
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: cloudformation-prod_internal
+  SecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref InternalSecurityGroup
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref InternalSecurityGroup
+  # アウトバウンドを許可するSGを作成するデフォルトで作成されるSGが作成されなくなる
+  # 今回はInternalSecurityGroupをデフォルトとしたいため、あえて追加
+  # 本来は追加しなくても、アウトバウンドは全てのドラフィックが許可されている
+  SecurityGroupEngress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref InternalSecurityGroup
+      IpProtocol: -1
+      CidrIp: 0.0.0.0/0
+
+
+  # -------------------------
+  # ALB
+  # -------------------------
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckPath: /
+      HealthCheckPort: 80
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: 200
+      Name: web-server-target-group
+      Port: 80
+      Protocol: HTTP
+      Targets:
+        - Id: !Ref EC2Instance
+          Port: 80
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: cloudformation-prod_web-server-target-group
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: web-server-alb
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref InternalSecurityGroup
+        - !Ref WebSecurityGroup
+      Subnets:
+        - !Ref SubnetPubA
+        - !Ref SubnetPubC
+      Type: application
+      Tags:
+        - Key: Name
+          Value: cloudformation-prod_web-server-alb
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP  # NLB では `TCP` に変更します。
 
 
 #UserData:

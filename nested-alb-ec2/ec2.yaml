@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Launch EC2 Instance
+Parameters:
+  MyVpcId:
+    Type: AWS::EC2::VPC::Id
+  MySubnetId:
+    Type: AWS::EC2::Subnet::Id
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+Mappings:
+  MyRegionMap: # Amazon Linux AMI 2017.09.0 (HVM), SSD Volume Type
+    us-east-1: # US East (N. Virginia)
+      AMI: ami-8c1be5f6
+    us-east-2: # US East (Ohio)
+      AMI: ami-c5062ba0
+    us-west-1: # US West (N. California)
+      AMI: ami-02eada62
+    us-west-2: # US West (Oregon)
+      AMI: ami-e689729e
+    ca-central-1: # Canada (Central)
+      AMI: ami-fd55ec99
+    eu-west-1: # EU (Ireland)
+      AMI: ami-acd005d5
+    eu-west-2: # EU (London)
+      AMI: ami-1a7f6d7e
+    eu-central-1: # EU (Frankfurt)
+      AMI: ami-c7ee5ca8
+    ap-southeast-1: # Asia Pacific (Singapore)
+      AMI: ami-0797ea64
+    ap-southeast-2: # Asia Pacific (Sydney)
+      AMI: ami-8536d6e7
+    ap-northeast-1: # Asia Pacific (Tokyo)
+      AMI: ami-2a69be4c
+    ap-northeast-2: # Asia Pacific (Seoul)
+      AMI: ami-9bec36f5
+    ap-south-1: # Asia Pacific (Mumbai)
+      AMI: ami-4fc58420
+    sa-east-1: # South America (São Paulo)
+      AMI: ami-f1344b9d
+Resources:
+  MyEc2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow incoming SSH/HTTP connections.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref MyVpcId
+  MyEc2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      BlockDeviceMappings:
+        - DeviceName: /dev/sdf
+          Ebs:
+            DeleteOnTermination: false
+            VolumeSize: 32
+            VolumeType: gp2
+      ImageId: !FindInMap [ MyRegionMap, !Ref 'AWS::Region', AMI ]
+      InstanceType: t2.micro
+      KeyName: !Ref MyKeyName
+      SecurityGroupIds:
+        - !Ref MyEc2SecurityGroup
+      SubnetId: !Ref MySubnetId
+      Tags:
+        - Key: Name
+          Value: my-ec2-instance
+  MyEip:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref MyEc2Instance
+      Domain: vpc
+Outputs:
+  MyOutputEc2Instance:
+    Value: !Ref MyEc2Instance
