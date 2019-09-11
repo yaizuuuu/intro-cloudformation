@@ -461,6 +461,18 @@ Resources:
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
 
+  # -------------------------
+  # WAF
+  # -------------------------
+  WAF:
+    Type: AWS::WAF::WebACL
+    Properties:
+      DefaultAction: ALLOW
+      MetricName: String
+      Name: !Sub "${AWS::StackName}_${DomainName}"
+      Rules:
+        - ActivatedRule
+
 #UserData:
 #  # 短縮形は連続して使えないためFn::Base64(完全形) -> !Sub(短縮形)となる
 #  Fn::Base64:
