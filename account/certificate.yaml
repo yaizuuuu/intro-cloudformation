@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  # -------------------------
+  # Certificate -> Domain
+  # -------------------------
+  SSLDomainNameCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}_domain'
+      ValidationMethod: DNS
+  # -------------------------
+  # Certificate -> SubDomain
+  # -------------------------
+  SSLSubDomainNameCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Sub '*.${DomainName}'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}_sub-domain'
+      ValidationMethod: DNS

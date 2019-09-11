@@ -336,7 +336,7 @@ Resources:
 
 
   # -------------------------
-  # Route53
+  # Route53 -> Alias Record -> ALB
   # -------------------------
   ALBRecordSetGroup:
     Type: AWS::Route53::RecordSetGroup
@@ -348,6 +348,68 @@ Resources:
           AliasTarget:
             DNSName: !GetAtt ALB.DNSName
             HostedZoneId: !GetAtt ALB.CanonicalHostedZoneID
+
+
+  # -------------------------
+  # CloudFront
+  # -------------------------
+  CloudFront:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+#        Aliases:
+#          - !Ref DomainName
+#        CacheBehaviors:
+#          - CacheBehavior
+#        CustomErrorResponses:
+#          - CustomErrorResponse
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+            - PUT
+            - PATCH
+            - POST
+            - DELETE
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          DefaultTTL: 86400
+          MaxTTL: 31536000
+          MinTTL: 0
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            Headers:
+              - '*'
+            QueryString: true
+          TargetOriginId: web-server-alb
+          ViewerProtocolPolicy: allow-all
+        Enabled: true
+        HttpVersion: http2
+        IPV6Enabled: true
+#        Logging:
+#          Logging
+        Origins:
+          - CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginKeepaliveTimeout: 5
+              OriginProtocolPolicy: match-viewer
+              OriginReadTimeout: 30
+            DomainName: !GetAtt ALB.DNSName
+            Id: web-server-alb
+        PriceClass: PriceClass_All
+#        Restrictions:
+#          Restrictions
+        ViewerCertificate:
+#          AcmCertificateArn: String
+          CloudFrontDefaultCertificate: true
+#          SslSupportMethod: String
+#        WebACLId: String
 
 
 #UserData:
