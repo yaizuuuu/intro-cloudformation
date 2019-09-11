@@ -383,8 +383,9 @@ Resources:
           ForwardedValues:
             Cookies:
               Forward: none
-            Headers:
-              - '*'
+#            # ヘッダーをすべてオリジンに転送する場合はこのように設定する
+#            Headers:
+#              - '*'
             QueryString: true
           TargetOriginId: web-server-alb
           ViewerProtocolPolicy: allow-all

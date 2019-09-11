@@ -1,24 +1,31 @@
 AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  DomainName1:
+    Description: Domain name 1
+    Type: String
+    ConstraintDescription: Domain name 1
+
 Resources:
   # -------------------------
   # Certificate -> Domain
   # -------------------------
-  SSLDomainNameCertificate:
+  SSLDomainName1Certificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
-      DomainName: !Ref DomainName
+      DomainName: !Ref DomainName1
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}_domain'
+          Value: !Sub '${AWS::StackName}_${DomainName1}-domain'
       ValidationMethod: DNS
   # -------------------------
   # Certificate -> SubDomain
   # -------------------------
-  SSLSubDomainNameCertificate:
+  SSLSubDomainName1Certificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
-      DomainName: !Sub '*.${DomainName}'
+      DomainName: !Sub '*.${DomainName1}'
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}_sub-domain'
+          Value: !Sub '${AWS::StackName}_${DomainName1}-sub-domain'
       ValidationMethod: DNS
