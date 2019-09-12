@@ -7,7 +7,7 @@ jobs:
     shell: /bin/ash
     steps:
       - checkout
-      # install aws-cli and set configure file
+      # install aws-cli
       - run:
           command: |
             pip3 install awscli --upgrade --user;
@@ -18,13 +18,12 @@ jobs:
               --exclude ".circleci*" \
               --exclude ".git*" \
               --exclude "*.md";
-
-#workflows:
-#  version: 2
-#  build:
-#    jobs:
-#      - build:
-#          filters:
-#            branch:
-#              only:
-#                - master
+workflows:
+  version: 2
+  workflow:
+    jobs:
+      - build
+          filters:
+            tag:
+              only:
+                - /v[0-9]+(\.[0-9]+)*/
