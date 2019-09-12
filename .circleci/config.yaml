@@ -1,0 +1,22 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+      image: python:3.7.4-alpine3.9
+    working_directory: /tmp
+    shell: /bin/ash
+    steps:
+      - checkout
+      - run:
+        name: install aws-cli and set configure file
+        command: |
+          pip3 install awscli --upgrade --user;
+          apk --update add groff;
+      - run:
+        name: deploy repositry to S3
+        command: |
+          aws s3 ls;
+
+filters:
+  tags:
+    only: /v[0-9]+(\.[0-9]+)*/
