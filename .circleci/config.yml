@@ -9,10 +9,10 @@ jobs:
       - checkout
       # install aws-cli and set configure file
       - run:
-        command: |
-          pip3 install awscli --upgrade --user;
-          apk --update add groff;
-          aws version;
+          command: |
+            pip3 install awscli --upgrade --user;
+            apk --update add groff;
+            aws version;
 #      - run:
 #        name: deploy repositry to S3
 #        command: |
