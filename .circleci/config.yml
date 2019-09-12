@@ -23,6 +23,6 @@ workflows:
     jobs:
       - build:
           filters:
-            tags:
+            branch:
               only:
                 - master
