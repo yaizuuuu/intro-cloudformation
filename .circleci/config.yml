@@ -7,8 +7,8 @@ jobs:
     shell: /bin/ash
     steps:
       - checkout
+      # install aws-cli and set configure file
       - run:
-        name: install aws-cli and set configure file
         command: |
           pip3 install awscli --upgrade --user;
           apk --update add groff;
