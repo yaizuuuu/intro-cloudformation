@@ -14,11 +14,10 @@ jobs:
             apk --update add groff;
             export PATH=$PATH:/root/.local/bin;
             aws --version;
-            ls -al /opt/cloudformation
-#      - run:
-#        name: deploy repositry to S3
-#        command: |
-#          aws s3 ls;
+            aws s3 sync /opt/cloudformation/ s3://yaizuuuu-cloudformation --delete \
+              --exclude ".circleci*" \
+              --exclude ".git*" \
+              --exclude --exclude "*.md";
 
 #workflows:
 #  version: 2
