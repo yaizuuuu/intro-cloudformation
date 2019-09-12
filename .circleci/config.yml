@@ -12,10 +12,11 @@ jobs:
         command: |
           pip3 install awscli --upgrade --user;
           apk --update add groff;
-      - run:
-        name: deploy repositry to S3
-        command: |
-          aws s3 ls;
+          aws version;
+#      - run:
+#        name: deploy repositry to S3
+#        command: |
+#          aws s3 ls;
 
 workflows:
   version: 2
