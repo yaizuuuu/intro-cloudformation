@@ -43,6 +43,11 @@ Parameters:
     Description: AWS logs bucket name
     Type: String
     ConstraintDescription: AWS logs bucket name
+  WebACLMetricsName:
+    Description: Web ACL metrics name
+    Type: String
+    AllowedPattern: '[0-9a-zA-Z]{1,128}'
+    ConstraintDescription: Web ACL metrics name
 
 Resources:
   # -------------------------
@@ -367,7 +372,9 @@ Resources:
   # -------------------------
   CloudFront:
     Type: AWS::CloudFront::Distribution
-    DependsOn: AWSLogsS3
+    DependsOn:
+      - AWSLogsS3
+      - WAF
     Properties:
       DistributionConfig:
         Aliases:
@@ -432,7 +439,7 @@ Resources:
           AcmCertificateArn:  !Ref AcmCertificateArn
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1.1_2016
-#        WebACLId: String
+        WebACLId: !Ref WAF
 
   # -------------------------
   # S3 -> yaizuuuu-aws-logs
@@ -461,17 +468,19 @@ Resources:
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
 
+
   # -------------------------
   # WAF
   # -------------------------
   WAF:
     Type: AWS::WAF::WebACL
     Properties:
-      DefaultAction: ALLOW
-      MetricName: String
+      DefaultAction:
+        Type: ALLOW
+      MetricName: !Ref WebACLMetricsName
       Name: !Sub "${AWS::StackName}_${DomainName}"
-      Rules:
-        - ActivatedRule
+#      Rules:
+#        - ActivatedRule
 
 #UserData:
 #  # 短縮形は連続して使えないためFn::Base64(完全形) -> !Sub(短縮形)となる
