@@ -14,6 +14,7 @@ jobs:
             apk --update add groff;
             export PATH=$PATH:/root/.local/bin;
             aws --version;
+            ls -al /opt/cloudformation
 #      - run:
 #        name: deploy repositry to S3
 #        command: |
