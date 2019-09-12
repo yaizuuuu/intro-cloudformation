@@ -17,6 +17,12 @@ jobs:
         command: |
           aws s3 ls;
 
-filters:
-  tags:
-    only: /v[0-9]+(\.[0-9]+)*/
+workflows:
+  version: 2.1
+  build:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only:
+                - master
