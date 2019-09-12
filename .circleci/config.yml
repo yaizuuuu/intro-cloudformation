@@ -13,7 +13,7 @@ jobs:
             pip3 install awscli --upgrade --user;
             apk --update add groff;
             export PATH=$PATH:/root/.local/bin;
-            aws version;
+            aws --version;
 #      - run:
 #        name: deploy repositry to S3
 #        command: |
