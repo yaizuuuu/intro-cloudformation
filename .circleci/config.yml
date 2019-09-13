@@ -7,7 +7,7 @@ jobs:
     shell: /bin/ash
     steps:
       - checkout
-      # install aws-cli
+      # install aws-cli and upload stack template to s3
       - run:
           command: |
             pip3 install awscli --upgrade --user;
